@@ -230,7 +230,11 @@ impl MountfordPlugin {
     }
 
     /// Create plugin from abundance matrix directly (for testing)
-    pub fn from_matrix(samples: Vec<String>, species: Vec<String>, abundance: Vec<Vec<f64>>) -> Self {
+    pub fn from_matrix(
+        samples: Vec<String>,
+        species: Vec<String>,
+        abundance: Vec<Vec<f64>>,
+    ) -> Self {
         let presence = abundance
             .iter()
             .map(|sample| sample.iter().map(|&v| v > 0.0).collect())

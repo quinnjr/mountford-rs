@@ -5,9 +5,16 @@ use mountford_rs::MountfordPlugin;
 use std::hint::black_box;
 
 /// Generate a random-ish abundance matrix
-fn generate_matrix(num_samples: usize, num_species: usize) -> (Vec<String>, Vec<String>, Vec<Vec<f64>>) {
-    let samples: Vec<String> = (0..num_samples).map(|i| format!("Sample{}", i + 1)).collect();
-    let species: Vec<String> = (0..num_species).map(|i| format!("Species{}", i + 1)).collect();
+fn generate_matrix(
+    num_samples: usize,
+    num_species: usize,
+) -> (Vec<String>, Vec<String>, Vec<Vec<f64>>) {
+    let samples: Vec<String> = (0..num_samples)
+        .map(|i| format!("Sample{}", i + 1))
+        .collect();
+    let species: Vec<String> = (0..num_species)
+        .map(|i| format!("Species{}", i + 1))
+        .collect();
 
     let abundance: Vec<Vec<f64>> = (0..num_samples)
         .map(|i| {
@@ -81,7 +88,10 @@ fn bench_full_pipeline(c: &mut Criterion) {
         let (samples, species, abundance) = generate_matrix(num_samples, num_species);
 
         group.bench_with_input(
-            BenchmarkId::new("from_matrix_and_run", format!("{}x{}", num_samples, num_species)),
+            BenchmarkId::new(
+                "from_matrix_and_run",
+                format!("{}x{}", num_samples, num_species),
+            ),
             &(samples.clone(), species.clone(), abundance.clone()),
             |b, (s, sp, a)| {
                 b.iter(|| {
@@ -96,5 +106,10 @@ fn bench_full_pipeline(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_dissimilarity_computation, bench_large_matrices, bench_full_pipeline);
+criterion_group!(
+    benches,
+    bench_dissimilarity_computation,
+    bench_large_matrices,
+    bench_full_pipeline
+);
 criterion_main!(benches);
