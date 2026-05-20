@@ -11,7 +11,10 @@
 //! - b = number of species in sample B
 //! - J = number of species common to both samples
 
+use pluma_plugin_trait::PluMAPlugin;
 use rayon::prelude::*;
+use std::ffi::CStr;
+use std::os::raw::c_char;
 use std::path::Path;
 
 /// Mountford plugin for PluMA
@@ -253,6 +256,78 @@ impl MountfordPlugin {
 impl Default for MountfordPlugin {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PluMA plugin contract (pluma-plugin-trait + dlsym-resolved FFI shims)
+// ---------------------------------------------------------------------------
+
+impl PluMAPlugin for MountfordPlugin {
+    fn input(&mut self, filepath: String) -> Result<(), Box<dyn std::error::Error>> {
+        MountfordPlugin::input(self, &filepath)
+    }
+    fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        MountfordPlugin::run(self);
+        Ok(())
+    }
+    fn output(&mut self, filepath: String) -> Result<(), Box<dyn std::error::Error>> {
+        MountfordPlugin::output(self, &filepath)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Mountford_plugin_create() -> *mut std::ffi::c_void {
+    Box::into_raw(Box::new(MountfordPlugin::new())) as *mut std::ffi::c_void
+}
+
+#[no_mangle]
+pub extern "C" fn Mountford_plugin_destroy(ptr: *mut std::ffi::c_void) {
+    if !ptr.is_null() {
+        unsafe {
+            let _ = Box::from_raw(ptr as *mut MountfordPlugin);
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Mountford_plugin_input(ptr: *mut std::ffi::c_void, filename: *const c_char) {
+    if ptr.is_null() || filename.is_null() {
+        return;
+    }
+    unsafe {
+        let plugin = &mut *(ptr as *mut MountfordPlugin);
+        let s = CStr::from_ptr(filename).to_str().unwrap_or("").to_string();
+        if let Err(e) = <MountfordPlugin as PluMAPlugin>::input(plugin, s) {
+            eprintln!("[Mountford] input error: {e}");
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Mountford_plugin_run(ptr: *mut std::ffi::c_void) {
+    if ptr.is_null() {
+        return;
+    }
+    unsafe {
+        let plugin = &mut *(ptr as *mut MountfordPlugin);
+        if let Err(e) = <MountfordPlugin as PluMAPlugin>::run(plugin) {
+            eprintln!("[Mountford] run error: {e}");
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Mountford_plugin_output(ptr: *mut std::ffi::c_void, filename: *const c_char) {
+    if ptr.is_null() || filename.is_null() {
+        return;
+    }
+    unsafe {
+        let plugin = &mut *(ptr as *mut MountfordPlugin);
+        let s = CStr::from_ptr(filename).to_str().unwrap_or("").to_string();
+        if let Err(e) = <MountfordPlugin as PluMAPlugin>::output(plugin, s) {
+            eprintln!("[Mountford] output error: {e}");
+        }
     }
 }
 
